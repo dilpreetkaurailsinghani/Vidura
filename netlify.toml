@@ -1,0 +1,50 @@
+# ============================================================================
+# Netlify configuration for the Vidura React SPA — FRONTEND ONLY.
+#
+# IMPORTANT: This app has a real Express backend (server/) that must run
+# somewhere with a persistent Node.js process (e.g., Railway). Netlify is
+# static hosting only — it cannot run the Express API server.
+#
+# RECOMMENDED: Deploy the whole monorepo to Railway instead (see railway.json
+# at the repo root). Railway serves both the API and the built frontend from
+# a single origin, so no extra configuration is needed — it just works.
+#
+# If you specifically want the frontend on Netlify with the backend on
+# Railway (a split deployment), you MUST do this one-time manual step
+# because nobody — including this config file — can know your Railway
+# backend's URL before you deploy it and Railway assigns a domain:
+#
+#   1. Deploy server/ (or the whole repo) to Railway first.
+#   2. Copy the Railway-assigned domain, e.g. https://vidura-api.up.railway.app
+#   3. Replace YOUR_RAILWAY_BACKEND_URL below with that domain.
+#   4. Commit and redeploy on Netlify.
+#
+# Without this step, /api/* requests on the Netlify-hosted frontend will
+# fall through to the SPA catch-all and return HTML instead of JSON —
+# breaking chat, report generation, and live market data.
+# ============================================================================
+
+[build]
+  base    = "client"
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Proxy API requests to the Railway backend (split-deployment only).
+# Replace YOUR_RAILWAY_BACKEND_URL with your actual Railway domain.
+# This rule is listed BEFORE the SPA catch-all so it takes priority.
+[[redirects]]
+  from   = "/api/*"
+  to     = "https://YOUR_RAILWAY_BACKEND_URL/api/:splat"
+  status = 200
+  force  = true
+
+# Redirect all remaining routes to index.html for client-side
+# (TanStack Router) routing — required so browser refresh on any
+# deep link (e.g. /company/RELIANCE) works instead of 404ing.
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

@@ -1,0 +1,4 @@
+# Redirect all requests to index.html for TanStack Router client-side routing.
+# This file is the Netlify-native alternative to the netlify.toml [[redirects]] block.
+# Both are included for maximum compatibility.
+/*    /index.html   200

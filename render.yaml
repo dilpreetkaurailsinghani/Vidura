@@ -1,0 +1,66 @@
+# ============================================================================
+# Render Blueprint — deploys Vidura as a single Web Service.
+#
+# Express (server/) serves both the REST API and the built React SPA
+# (client/dist) from one origin, so a single Web Service is all this app
+# needs — no separate static site or second service required.
+#
+# Deploy: Render Dashboard → New → Blueprint → connect this repo → Apply.
+# You'll be prompted for LOVABLE_API_KEY during setup (marked `sync: false`
+# below); every other variable already has a safe default.
+#
+# Schema reference: https://render.com/docs/blueprint-spec
+# ============================================================================
+
+services:
+  - type: web
+    name: vidura
+    runtime: node
+    # Free tier is enough to try the app at zero cost; it spins down after
+    # 15 minutes of inactivity and cold-starts on the next request. Change
+    # to `starter` (or higher) for an always-on instance.
+    plan: free
+    region: oregon
+
+    # Builds the React SPA (client/dist) and type-checks the server.
+    # Matches the root package.json "build" script exactly.
+    buildCommand: npm ci && npm run build --workspace client && npm run build --workspace server
+
+    # Runs the Express server, which serves both /api/* and the built SPA.
+    # Matches the root package.json "start" script exactly.
+    startCommand: npm start
+
+    # Render polls this path to confirm the service is healthy after each
+    # deploy. Matches GET /api/health, which the server always answers once
+    # it's up — independent of whether optional integrations are configured.
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Model forwarded to the Lovable AI Gateway for /api/chat and /api/report.
+      - key: AI_MODEL
+        value: google/gemini-2.0-flash
+
+      # Max AI requests per IP per minute.
+      - key: AI_RATE_LIMIT_MAX
+        value: "10"
+
+      # Required for /api/chat and /api/report to return real responses.
+      # Prompted for in the Render Dashboard during the initial Blueprint
+      # setup. The site still starts and serves everything else (frontend,
+      # health check, market data) if this is left unset.
+      - key: LOVABLE_API_KEY
+        sync: false
+
+      # Not required: this app serves the API and the frontend from the
+      # same Render service/origin, so same-origin requests never need
+      # CORS headers at all. Only set CORS_ORIGIN if you're calling this
+      # API from a genuinely different origin (e.g., a separate static
+      # frontend deploy elsewhere).
+      # - key: CORS_ORIGIN
+      #   value: https://your-other-frontend-domain.com
+
+      - key: LOG_LEVEL
+        value: info
